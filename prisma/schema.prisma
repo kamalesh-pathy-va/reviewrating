@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(uuid())
+  name        String
+  email       String      @unique
+  password    String
+  roles       UserRole[]
+  products    Product[] // Products created by this user
+  reviews     Review[] // Reviews written by this user
+  ownedBrands BrandUser[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime? // Soft delete
+}
+
+model UserRole {
+  userId String
+  role   Role
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([userId, role]) // Composite primary key (one user can have multiple roles)
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String? // Optional description
+  type        ProductType
+  brandId     String?
+  brand       Brand?      @relation(fields: [brandId], references: [id])
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id])
+  reviews     Review[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime? // Soft delete
+}
+
+model Review {
+  id        String       @id @default(uuid())
+  rating    Int
+  comment   String
+  status    ReviewStatus @default(PENDING)
+  productId String
+  product   Product      @relation(fields: [productId], references: [id])
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime? // Soft delete
+}
+
+model Brand {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  products  Product[]
+  owners    BrandUser[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime? // Soft delete
+}
+
+// Many-to-Many relationship between Users and Brands
+model BrandUser {
+  userId  String
+  brandId String
+  user    User   @relation(fields: [userId], references: [id])
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  @@id([userId, brandId]) // Composite primary key
+}
+
+enum Role {
+  ADMIN
+  MODERATOR
+  OWNER
+  USER
+}
+
+enum ProductType {
+  PRODUCT
+  SERVICE
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  FLAGGED
+  REJECTED
+}
