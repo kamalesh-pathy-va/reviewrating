@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
 import { Role } from "@prisma/client";
@@ -119,5 +119,24 @@ export const productRouter = router({
       });
 
       return softDeletedProduct;
+    }),
+  getProductById: publicProcedure
+    .input(z.object({
+      id: z.string()
+    }))
+    .query(async ({ input }) => {
+      const { id } = input;
+      const product = await prisma.product.findUnique({
+        where: { id, deletedAt: null },
+      });
+
+      if (!product) {
+        throw new TRPCError({
+          "code": "NOT_FOUND",
+          message: "Product not found"
+        });
+      }
+
+      return product;
     }),
 });
