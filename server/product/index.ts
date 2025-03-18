@@ -139,4 +139,30 @@ export const productRouter = router({
 
       return product;
     }),
+  getAllProducts: publicProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(50).default(10),
+      cursor: z.string().nullish(),
+    }))
+    .query(async ({ input }) => {
+      const { limit, cursor } = input;
+
+      const products = await prisma.product.findMany({
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { name: "asc" },
+        where: { deletedAt: null},
+      });
+
+      let nextCursor: string | null = null;
+      if (products.length > limit) {
+        const nextItem = products.pop();
+        nextCursor = nextItem?.id ?? null;
+      }
+
+      return {
+        products,
+        nextCursor,
+      };
+    }),
 });
