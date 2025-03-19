@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
 import { Role } from "@prisma/client";
@@ -61,7 +61,37 @@ export const brandRouter = router({
         });
       }
 
-      const brand = await prisma.brand.update({
+      const brandUser = await prisma.brandUser.findFirst({
+        where: { brandId },
+        orderBy: { userId: "asc" },
+        select: {userId: true},
+      });
+
+      if (!brandUser) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Brand not found or has no associated users.",
+        });
+      }
+      const existingRole = await prisma.userRole.findUnique({
+        where: {
+          userId_role: {
+            userId: brandUser.userId,
+            role: Role.OWNER,
+          },
+        },
+      });
+
+      if (!existingRole) {
+        await prisma.userRole.create({
+          data: {
+            userId: brandUser.userId,
+            role: Role.OWNER,
+          }
+        })
+      }
+
+      const updatedBrand = await prisma.brand.update({
         where: {
           id: brandId,
           deletedAt: null,
@@ -69,7 +99,7 @@ export const brandRouter = router({
         data: { verified: true },
       });
 
-      return brand;
+      return updatedBrand;
     }),
   
   getAllBrands: protectedProcedure
@@ -98,6 +128,41 @@ export const brandRouter = router({
         },
       });
 
-      return brands;
+      let nextCursor: string | null = null;
+      if (brands.length > limit) {
+        const nextItem = brands.pop();
+        nextCursor = nextItem?.id ?? null;
+      }
+
+      return {
+        brands,
+        nextCursor,
+      };
     }),
+  getBrandById: publicProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+      }))
+    .query(async ({ input }) => {
+      const { id } = input;
+
+      const brand = await prisma.brand.findUnique({
+        where: {
+          id,
+          verified: true,
+          deletedAt: null
+        }
+      });
+
+      if (!brand) {
+        throw new TRPCError({
+          "code": "NOT_FOUND",
+          "message": "Brand not found"
+        })
+      }
+
+      return brand;
+    }),
+  
 });

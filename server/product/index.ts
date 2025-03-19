@@ -113,12 +113,12 @@ export const productRouter = router({
         });
       }
 
-      const softDeletedProduct = await prisma.product.update({
+      await prisma.product.update({
         where: { id },
         data: { deletedAt: new Date() },
       });
 
-      return softDeletedProduct;
+      return { success: true, message: "Product deleted successfully" };
     }),
   getProductById: publicProcedure
     .input(z.object({
