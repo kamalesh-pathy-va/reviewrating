@@ -39,6 +39,7 @@ model Product {
   createdById String
   createdBy   User        @relation(fields: [createdById], references: [id])
   reviews     Review[]
+  verified    Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime? // Soft delete

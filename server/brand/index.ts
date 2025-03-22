@@ -165,4 +165,34 @@ export const brandRouter = router({
       return brand;
     }),
   
+  searchBrands: publicProcedure
+  .input(z.object({
+    query: z.string().min(1),
+  }))
+  .query(async ({ input }) => {
+    const { query } = input;
+    const queryParts = query.split(" ");
+
+    const topBrands = await prisma.brand.findMany({
+      where: {
+        AND: [
+          {
+            OR: queryParts.map(part => ({
+              name: { contains: part, mode: "insensitive" }, // Match any word in product name
+            })),
+          },
+          { deletedAt: null },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+      take: 10,
+      orderBy: { name: "asc" },
+    });
+
+    return topBrands;
+  }),
+  
 });

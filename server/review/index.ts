@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
-import { Role } from "@prisma/client";
+import { ReviewStatus, Role } from "@prisma/client";
 
 export const reviewRouter = router({
   postReview: protectedProcedure
@@ -156,4 +156,191 @@ export const reviewRouter = router({
     return { success: true, message: `Review status updated to ${status}` };
   }),
 
+  getReviewsByProductId: protectedProcedure
+  .input(z.object({
+    productId: z.string(),
+    limit: z.number().min(1).max(50).default(10),
+    cursor: z.string().nullish(),
+  }))
+  .query(async ({ ctx, input }) => {
+    const { user } = ctx;
+    const { productId, limit, cursor } = input;
+
+    // Fetch product details along with brand ownership info
+    const product = await prisma.product.findUnique({
+      where: { id: productId, deletedAt: null },
+      select: {
+        brandId: true,
+        brand: { select: { owners: { select: { userId: true } } } },
+      },
+    });
+
+    if (!product) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Product not found"
+      });
+    }
+
+    let isAdminOrModerator = false;
+    let isOwner = false;
+
+    if (user) {
+      const brandOwners = product.brand?.owners.map((owner) => owner.userId) || [];
+
+      // Fetch user roles
+      const userRoles = await prisma.userRole.findMany({
+        where: { userId: user.id },
+        select: { role: true },
+      });
+
+      isAdminOrModerator = userRoles.some(
+        (role) => role.role === Role.ADMIN || role.role === Role.MODERATOR
+      );
+      isOwner = brandOwners.includes(user.id);
+    }
+
+    // Fetch reviews based on role-based access
+    const reviews = await prisma.review.findMany({
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: {createdAt: "desc"},
+      where: {
+        productId,
+        deletedAt: null,
+        AND: [
+          !user ?
+            { status: ReviewStatus.APPROVED } :
+            isAdminOrModerator || isOwner ? {} :
+              {
+                OR: [
+                  { status: ReviewStatus.APPROVED },
+                  { userId: user.id}
+                ],
+              },
+        ],
+      },
+    });
+
+    let nextCursor: string | null = null;
+    if (reviews.length > limit) {
+      const nextItem = reviews.pop();
+      nextCursor = nextItem?.id ?? null;
+    }
+
+    return {
+      reviews,
+      nextCursor
+    };
+  }),
+
+  getReviewsByUserId: protectedProcedure
+  .input(z.object({
+    userId: z.string(),
+    limit: z.number().min(1).max(50).default(10),
+    cursor: z.string().nullish(),
+  }))
+  .query(async ({ ctx, input }) => {
+    const { user } = ctx;
+    const { userId, limit, cursor } = input;
+
+    // Fetch user roles
+    const userRoles = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { roles: true },
+    });
+
+    const isAdminOrModerator = userRoles?.roles.some((role) =>
+      ["ADMIN", "MODERATOR"].includes(role.role)
+    );
+
+    const whereCondition = user.id === userId || isAdminOrModerator
+      ? { userId, deletedAt: null }
+      : { userId, status: ReviewStatus.APPROVED, deletedAt: null };
+
+    const reviews = await prisma.review.findMany({
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: "desc" },
+      where: whereCondition,
+    });
+
+    let nextCursor: string | null = null;
+    if (reviews.length > limit) {
+      const nextItem = reviews.pop();
+      nextCursor = nextItem?.id ?? null;
+    }
+
+    return {
+      reviews,
+      nextCursor,
+    };
+  }),
+
+  getReviewsByBrandId: protectedProcedure
+  .input(z.object({
+    brandId: z.string(),
+    limit: z.number().min(1).max(50).default(10),
+    cursor: z.string().nullish(),
+  }))
+  .query(async ({ ctx, input }) => {
+    const { user } = ctx;
+    const { brandId, limit, cursor } = input;
+
+    // Fetch brand ownership details
+    const brand = await prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { owners: { select: { userId: true } } },
+    });
+
+    if (!brand) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Brand not found" });
+    }
+
+    const brandOwners = brand.owners.map((owner) => owner.userId);
+
+    // Fetch user roles
+    const userRoles = await prisma.userRole.findMany({
+      where: { userId: user.id },
+      select: { role: true },
+    });
+
+    const isAdminOrModerator = userRoles.some(
+      (role) => role.role === Role.ADMIN || role.role === Role.MODERATOR
+    );
+    const isBrandOwner = brandOwners.includes(user.id);
+
+    // Fetch reviews for all products under the brand
+    const reviews = await prisma.review.findMany({
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: "desc" },
+      where: {
+        product: { brandId },
+        deletedAt: null,
+        AND: [
+          isAdminOrModerator || isBrandOwner ? {} :
+            {
+              OR: [
+                { status: ReviewStatus.APPROVED },
+                { userId: user.id }
+              ]
+            }
+        ]
+      },
+      include: { product: true },
+    });
+
+    let nextCursor: string | null = null;
+    if (reviews.length > limit) {
+      const nextItem = reviews.pop();
+      nextCursor = nextItem?.id ?? null;
+    }
+
+    return {
+      reviews,
+      nextCursor,
+    };
+  }),
+  
 });
