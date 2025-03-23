@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { tuple, z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
@@ -113,7 +113,7 @@ export const brandRouter = router({
 
       const userRoles = await prisma.user.findUnique({
         where: { id: user.id },
-        select: {roles: true},
+        select: { roles: true },
       });
 
       const isAdmin = userRoles?.roles.some((role) => role.role === Role.ADMIN);
@@ -125,6 +125,15 @@ export const brandRouter = router({
         where: {
           deletedAt: null,
           ...(isAdmin ? {} : { verified: true }),
+        },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          verified: true,
+          _count: {
+            select: { products: true },
+          },
         },
       });
 
@@ -193,6 +202,77 @@ export const brandRouter = router({
     });
 
     return topBrands;
+  }),
+
+  getBrandByUserId: protectedProcedure
+    .input(z.object({
+      userId: z.string(),
+      limit: z.number().min(1).max(50).default(5),
+      cursor: z.string().nullish(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { user } = ctx;
+      const { limit, cursor, userId } = input;
+
+      const userRoles = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { roles: true },
+      });
+
+      const isAdminOrModerator = userRoles?.roles.some(role => (role.role === Role.ADMIN || role.role === Role.MODERATOR));
+
+      if (!user) {
+        throw new TRPCError({
+          "code": "UNAUTHORIZED",
+          "message": "User not logged in",
+        });
+      }
+
+      if (!isAdminOrModerator && !(user.id === userId)) {
+        throw new TRPCError({
+          "code": "UNAUTHORIZED",
+          "message": "Not Admin, Moderator and not current user"
+        });
+      }
+
+      const brandIDs = await prisma.brandUser.findMany({
+        where: {
+          userId: userId,
+        },
+        select: {
+          brandId: true,
+        }
+      });
+
+      const brands = await prisma.brand.findMany({
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { name: "asc" },
+        where: {
+          deletedAt: null,
+          id: { in: brandIDs.map(brand => brand.brandId) }
+        },
+        select: {
+          name: true,
+          id: true,
+          createdAt: true,
+          verified: true,
+          _count: {
+            select: { products: true }
+          }
+        }
+      });
+
+      let nextCursor: string | null = null;
+      if (brands.length > limit) {
+        const nextItem = brands.pop();
+        nextCursor = nextItem?.id ?? null;
+      }
+
+      return {
+        brands,
+        nextCursor,
+      };
   }),
   
 });

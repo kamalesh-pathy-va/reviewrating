@@ -222,7 +222,22 @@ export const productRouter = router({
         take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: { name: "asc" },
-        where: { deletedAt: null},
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          createdAt: true,
+          updatedAt: true,
+          description: true,
+          verified: true,
+          brand: { select: { id: true, name: true } },
+          reviews: {
+            select: {
+              rating: true,
+            }
+          }
+        },
       });
 
       let nextCursor: string | null = null;
@@ -359,5 +374,78 @@ export const productRouter = router({
 
     return topProducts;
   }),
+
+  getProductByUserId: protectedProcedure
+  .input(z.object({
+    userId: z.string(),
+    limit: z.number().min(1).max(50).default(5),
+    cursor: z.string().nullish(),
+  }))
+  .query(async ({ ctx, input }) => {
+    const { user } = ctx;
+    const { limit, cursor, userId } = input;
+
+    const userRoles = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { roles: true },
+    });
+
+    const isAdminOrModerator = userRoles?.roles.some(role => (role.role === Role.ADMIN || role.role === Role.MODERATOR));
+
+    if (!user) {
+      throw new TRPCError({
+        "code": "UNAUTHORIZED",
+        "message": "User not logged in",
+      });
+    }
+
+    if (!isAdminOrModerator && !(user.id === userId)) {
+      throw new TRPCError({
+        "code": "UNAUTHORIZED",
+        "message": "Not Admin, Moderator and not current user"
+      });
+    }
+
+    const products = await prisma.product.findMany({
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { name: "asc" },
+      where: {
+        deletedAt: null,
+        createdById: userId,
+      },
+      select: {
+        name: true,
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        description: true,
+        type: true,
+        verified: true,
+        brand: {
+          select: {
+            name: true,
+            id: true,
+          }
+        },
+        reviews: {
+          select: {
+            rating: true,
+          }
+        },
+      },
+    });
+
+    let nextCursor: string | null = null;
+    if (products.length > limit) {
+      const nextItem = products.pop();
+      nextCursor = nextItem?.id ?? null;
+    }
+
+    return {
+      products,
+      nextCursor,
+    };
+}),
 
 });

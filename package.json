@@ -15,6 +15,7 @@
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "bcryptjs": "^3.0.2",
+    "cookie": "^1.0.2",
     "jsonwebtoken": "^9.0.2",
     "next": "14.2.24",
     "react": "^18",

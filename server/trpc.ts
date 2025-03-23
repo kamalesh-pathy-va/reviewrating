@@ -2,11 +2,12 @@ import { prisma } from "@/utils/db";
 import { verifyJwt } from "@/utils/jwt";
 import { inferAsyncReturnType, initTRPC } from "@trpc/server";
 import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+import { parse } from 'cookie';
 
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
 
-  const token = req.headers.get("authorization")?.split(" ")[1];
+  const token = req.headers.get("authorization")?.split(" ")[1] || parse(req.headers.get("cookie") || "").authToken;
 
   let user = null;
   if (token) {

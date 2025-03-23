@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 export const userRouter = router({
   getCurrentUser: protectedProcedure.query(async ({ ctx }) => {
@@ -27,18 +28,22 @@ export const userRouter = router({
   .input(z.object({
     userId: z.string(),
     }))
-    .query(async ({ input }) => {
+  .query(async ({ input }) => {
       const userDetails = await prisma.user.findUnique({
         where: { id: input.userId },
         select: {
           id: true,
           name: true,
           createdAt: true,
+          email: true,
           roles: true,
-          ownedBrands: {
-            select: { brand: { select: {name: true} } },
+          _count: {
+            select: {
+              reviews: true,
+              ownedBrands: true,
+              products: true
+            }
           },
-          _count: { select: { reviews: true } },
         },
       });
 
@@ -49,13 +54,13 @@ export const userRouter = router({
       return {
         id: userDetails.id,
         name: userDetails.name,
+        email: userDetails.email,
         createdAt: userDetails.createdAt,
-        roles: userDetails.roles,
-        ownedBrands: userDetails.ownedBrands.map((ownedBrand) => ownedBrand.brand.name),
         reviewsCount: userDetails._count.reviews,
       };
     }
   ),
+
   searchUsers: publicProcedure
   .input(z.object({
     query: z.string().min(3),
@@ -82,4 +87,40 @@ export const userRouter = router({
 
     return users;
   }),
+
+  updateUser: protectedProcedure.input(z.object({
+    name: z.string().optional(),
+    email: z.string().optional(),
+    password: z.string().min(6, "Password must be atleast 6 characters").optional(),
+  }))
+    .mutation(async ({ ctx, input }) => {
+      const { user } = ctx;
+      const { name, email, password } = input;
+
+      if (!name && !email && !password) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "At least one field must be provided for update.",
+        });
+      }
+
+      const updateData: Partial<{ name: string; email: string; password: string }> = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+
+      return updatedUser;
+  })
 });
