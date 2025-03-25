@@ -198,6 +198,21 @@ export const productRouter = router({
       const { id } = input;
       const product = await prisma.product.findUnique({
         where: { id, deletedAt: null },
+        select: {
+          name: true,
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          description: true,
+          type: true,
+          verified: true,
+          brand: { select: { id: true, name: true } },
+          _count: {
+            select: {
+              reviews: true
+            }
+          }
+        }
       });
 
       if (!product) {
