@@ -207,11 +207,12 @@ export const productRouter = router({
           type: true,
           verified: true,
           brand: { select: { id: true, name: true } },
+          createdBy: { select: { id: true, name: true } },
           _count: {
             select: {
               reviews: true
-            }
-          }
+            },
+          },
         }
       });
 

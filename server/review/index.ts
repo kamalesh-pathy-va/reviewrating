@@ -222,6 +222,30 @@ export const reviewRouter = router({
       },
     });
 
+    const aggregation = await prisma.review.aggregate({
+      where: {
+        productId,
+        deletedAt: null,
+        AND: [
+          !user ?
+            { status: ReviewStatus.APPROVED } :
+            isAdminOrModerator || isOwner ? {} :
+              {
+                OR: [
+                  { status: ReviewStatus.APPROVED },
+                  { userId: user.id}
+                ],
+              },
+        ],
+      },
+      _avg: {
+        rating: true,
+      },
+      _count: {
+        rating: true,
+      }
+    })
+
     let nextCursor: string | null = null;
     if (reviews.length > limit) {
       const nextItem = reviews.pop();
@@ -230,6 +254,7 @@ export const reviewRouter = router({
 
     return {
       reviews,
+      aggregation,
       nextCursor
     };
   }),
