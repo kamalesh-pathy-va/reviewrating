@@ -21,7 +21,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
     {
       enabled: (params.productId.length !== 0 && localUser?.id !== null),
     }
-  )
+  );
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -37,10 +37,10 @@ const Product = ({ params }: { params: { productId: string } }) => {
   return (
     <section className='p-6 min-h-screen bg-emerald-50'>
       <div className='max-w-6xl mx-auto'>
-        {isLoading && <p>Loading Products...</p>}
-        {error && <p className="text-red-500">Error loading products: {error.message}</p>}
+        {isLoading && <p>Loading Product...</p>}
+        {error && <p className="text-red-500">Error loading product: {error.message}</p>}
         {
-          data ? (
+          data && (
             <div className='grid grid-cols-2 gap-4'>
               <div className='w-full flex justify-center items-center h-96 bg-gradient-to-b from-indigo-300 to-purple-200 rounded-xl'>
                 {/* <Image src={shoe} alt=''
@@ -108,8 +108,19 @@ const Product = ({ params }: { params: { productId: string } }) => {
                 }
               </div>
             </div>
-          ) : "Unexpectd error occured"
+          )
         }
+        <div className='mt-8 flex'>
+          <div className='p-8 rounded-lg bg-emerald-100 w-4/6'>
+            <h4 className='text-2xl font-bold pb-4'>Post a review</h4>
+            <form>
+              <div className='flex flex-col gap-1'>
+                <label htmlFor="title" className='font-semibold'>Title</label>
+                <input type="text" name='title' className='w-' />
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   )

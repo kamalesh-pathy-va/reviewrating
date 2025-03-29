@@ -8,12 +8,13 @@ export const reviewRouter = router({
   postReview: protectedProcedure
   .input(z.object({
     productId: z.string(),
+    title: z.string().min(1),
     rating: z.number().min(1).max(5),
     comment: z.string().optional(),
   }))
   .mutation(async ({ ctx, input }) => {
     const { user } = ctx;
-    const { productId, rating, comment } = input;
+    const { productId, rating, comment, title } = input;
 
     const product = await prisma.product.findFirst({
       where: { id: productId, deletedAt: null },
@@ -40,6 +41,7 @@ export const reviewRouter = router({
         data: {
           rating,
           comment: comment ? comment : "",
+          title,
           status: "APPROVED",
           updatedAt: new Date(),
         },
@@ -53,6 +55,7 @@ export const reviewRouter = router({
         rating,
         comment: comment ? comment : "",
         productId,
+        title,
         userId: user.id,
         status: "APPROVED",
       },
@@ -356,6 +359,28 @@ export const reviewRouter = router({
       include: { product: true },
     });
 
+    const aggregation = await prisma.review.aggregate({
+      where: {
+        product: { brandId },
+        deletedAt: null,
+        AND: [
+          isAdminOrModerator || isBrandOwner ? {} :
+            {
+              OR: [
+                { status: ReviewStatus.APPROVED },
+                { userId: user.id }
+              ]
+            }
+        ]
+      },
+      _avg: {
+        rating: true,
+      },
+      _count: {
+        rating: true,
+      }
+    });
+
     let nextCursor: string | null = null;
     if (reviews.length > limit) {
       const nextItem = reviews.pop();
@@ -364,6 +389,7 @@ export const reviewRouter = router({
 
     return {
       reviews,
+      aggregation,
       nextCursor,
     };
   }),

@@ -47,6 +47,7 @@ model Product {
 
 model Review {
   id        String       @id @default(uuid())
+  title     String
   rating    Int
   comment   String
   status    ReviewStatus @default(PENDING)

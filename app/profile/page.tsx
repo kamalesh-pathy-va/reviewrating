@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import { trpc } from '../_trpc/client';
 import { ProductType } from '@prisma/client';
-import BrandCard from '../components/BrandCard';
-import ProductItem from '../components/ProductItem';
+import BrandListItem from '../components/BrandListItem';
+import ProductListItem from '../components/ProductListItem';
 
 type TempUser = {
   name: string;
@@ -170,15 +170,19 @@ const Profile = () => {
         }
       </section>
       <section className='max-w-6xl mx-auto mb-12'>
-        <h4 className='text-xl font-bold mb-6'>User&apos;s Brands</h4>
-
         {brandLoading && <p>Loading brands...</p>}
         {brandError && <p className="text-red-500">Error loading brands: {brandError.message}</p>}
 
-        <div className='grid grid-cols-3 gap-4'>
+        <div className='flex flex-col w-full bg-white border border-b-0 border-neutral-300 rounded-lg rounded-b-none'>
+          <h4 className='text-xl font-semibold m-4'>My Brands</h4>
+          <div className='grid grid-cols-[40%_30%_30%] px-4 py-1 border-b border-neutral-300 font-bold text-neutral-400'>
+            <span>Brand name</span>
+            <span>Products</span>
+            <span>Ratings</span>
+          </div>
           {brands.length ? brands.map((brand) => (
-            <BrandCard key={brand.id} brand={brand} />
-          )) : "No Brands"}
+            <BrandListItem key={brand.id} brand={brand} />
+          )) : <span className='p-2'>No Brands</span>}
         </div>
 
         {brand?.nextCursor && (
@@ -192,17 +196,22 @@ const Profile = () => {
         )}
       </section>
       <section className='max-w-6xl mx-auto'>
-        <h4 className='text-xl font-bold mb-6'>User&apos;s Products</h4>
-
         {productLoading && <p>Loading Products...</p>}
         {productError && <p className="text-red-500">Error loading products: {productError.message}</p>}
 
-        <div className='grid grid-cols-4 gap-4'>
+        <div className='flex flex-col w-full bg-white border border-b-0 border-neutral-300 rounded-lg rounded-b-none'>
+          <h4 className='text-xl font-semibold m-4'>My Products</h4>
+
+          <div className='grid grid-cols-[40%_30%_30%] px-4 py-1 border-b border-neutral-300 font-bold text-neutral-400'>
+            <span>Name</span>
+            <span>Type</span>
+            <span>Ratings</span>
+          </div>
           {products.length ? products.map((product) => (
-            <ProductItem key={product.id} product={product} />
-          )) : "No Products"}
+            <ProductListItem key={product.id} product={product} />
+          )) : <span className='p-2'>No Products</span>}
         </div>
-        
+
         {product?.nextCursor && (
           <button
             onClick={() => setProductCursor(product.nextCursor)}
