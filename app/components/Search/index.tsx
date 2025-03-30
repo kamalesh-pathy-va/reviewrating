@@ -25,7 +25,7 @@ const Search = ({ border = false }: { border?: boolean }) => {
       <div className={`w-full ${border && 'border border-gray-300 rounded'}`}>
         <input type="search" placeholder="Search for products and brands" className='outline-none w-full p-2 rounded font-semibold text-gray-700' onChange={(e) => setQuery(e.target.value)} />
       </div>
-      <div className='absolute w-full bg-white rounded shadow-lg mt-1 top-10 flex flex-col max-h-80 overflow-x-hidden overflow-y-auto'>
+      <div className='absolute w-full bg-white rounded shadow-lg mt-1 top-10 flex flex-col max-h-80 overflow-x-hidden overflow-y-auto z-10'>
         {(products || brands) && (
           <div className='font-semibold text-gray-700 p-2 flex gap-2 items-center'>
             <span className='text-xs font-extralight bg-neutral-200 p-1 px-2 rounded-full'>all</span>

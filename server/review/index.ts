@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
 import { ReviewStatus, Role } from "@prisma/client";
@@ -159,7 +159,7 @@ export const reviewRouter = router({
     return { success: true, message: `Review status updated to ${status}` };
   }),
 
-  getReviewsByProductId: protectedProcedure
+  getReviewsByProductId: publicProcedure
   .input(z.object({
     productId: z.string(),
     limit: z.number().min(1).max(50).default(10),
@@ -207,7 +207,7 @@ export const reviewRouter = router({
     const reviews = await prisma.review.findMany({
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
-      orderBy: {createdAt: "desc"},
+      orderBy: { updatedAt: "desc" },
       where: {
         productId,
         deletedAt: null,
@@ -218,10 +218,20 @@ export const reviewRouter = router({
               {
                 OR: [
                   { status: ReviewStatus.APPROVED },
-                  { userId: user.id}
+                  { userId: user.id }
                 ],
               },
         ],
+      },
+      select: {
+        id: true,
+        title: true,
+        rating: true,
+        comment: true,
+        status: true,
+        user: { select: { name: true, id: true, _count: { select: { reviews: true } } } },
+        createdAt: true,
+        updatedAt: true,
       },
     });
 

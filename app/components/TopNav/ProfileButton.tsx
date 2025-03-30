@@ -15,7 +15,7 @@ const ProfileButton = ({ username }: { username: string }) => {
         {username}
       </button>
       {isOpen && (
-        <div className='absolute -left-2 mt-2 bg-emerald-50 p-1 rounded-lg shadow-lg w-full'>
+        <div className='absolute -left-2 mt-2 bg-emerald-50 p-1 rounded-lg shadow-lg w-full z-10'>
           <button className='block w-full text-left hover:bg-emerald-100 p-2 rounded-lg' onClick={() => { router.push("/profile"); setIsOpen(!isOpen) }}>Profile</button>
           <button className='block w-full text-left hover:bg-emerald-100 p-2 rounded-lg' onClick={() => logout()}>Logout</button>
         </div>
