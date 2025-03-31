@@ -1,4 +1,4 @@
-import { tuple, z } from "zod";
+import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";

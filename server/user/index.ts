@@ -44,6 +44,17 @@ export const userRouter = router({
               products: true
             }
           },
+          ownedBrands: {
+            select: {
+              brand: {
+                select: {
+                  id: true,
+                  verified: true,
+                  name: true,
+                }
+              }
+            }
+          }
         },
       });
 
@@ -56,7 +67,11 @@ export const userRouter = router({
         name: userDetails.name,
         email: userDetails.email,
         createdAt: userDetails.createdAt,
+        roles: userDetails.roles,
+        ownedBrands: userDetails.ownedBrands,
         reviewsCount: userDetails._count.reviews,
+        brandCount: userDetails._count.ownedBrands,
+        productCount: userDetails._count.products,
       };
     }
   ),
