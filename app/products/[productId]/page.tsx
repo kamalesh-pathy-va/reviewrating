@@ -84,12 +84,22 @@ const Product = ({ params }: { params: { productId: string } }) => {
   const [toggleOptions, setToggleOptions] = useState(false);
   const [toggleClaimThis, setToggleClaimThis] = useState(false);
   const [toggleDeleteThis, setToggleDeleteThis] = useState(false);
+  const [claimThisData, setClaimThisData] = useState({
+    brandId: '',
+    verified: false,
+  });
+  const [claimThisError, setClaimThisError] = useState({
+    brandId: false,
+  });
+  const [claimThisSubmitErrors, setClaimThisSubmitErrors] = useState<string[]>([]);
+  const [claimThisSubmitLoading, setClaimThisSubmitLoading] = useState(false);
 
   //Queries
-  const { data, isLoading, error } = trpc.product.getProductById.useQuery(
+  const { data, isLoading, error, refetch } = trpc.product.getProductById.useQuery(
     { id: params.productId },
     {
-      enabled: params.productId.length !== 0
+      enabled: params.productId.length !== 0,
+      refetchOnWindowFocus: false,
     }
   );
 
@@ -118,6 +128,8 @@ const Product = ({ params }: { params: { productId: string } }) => {
       refetchOnWindowFocus: false,
     }
   );
+
+  const productMutation = trpc.product.updateProduct.useMutation();
 
   //Helpers
   useEffect(() => {
@@ -172,7 +184,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
           setFormSubmitErrors([err.message]);
         }
       } else {
-        setFormSubmitErrors(["Signup failed. Please try again."]);
+        setFormSubmitErrors(["Review submit failed. Please try again."]);
       }
     } finally {
       setSubmitLoading(false);
@@ -203,6 +215,56 @@ const Product = ({ params }: { params: { productId: string } }) => {
 
   const handleClaimThisOnSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    setClaimThisData(prev => {
+      console.log(prev);
+      return prev;
+    });
+
+    if (claimThisData.brandId.length === 0) {
+      setClaimThisError(prev => ({ ...prev, brandId: true }));
+      return;
+    } else {
+      setClaimThisError(prev => ({ ...prev, brandId: false }));
+    }
+
+    setClaimThisSubmitErrors([]);
+    setClaimThisSubmitLoading(true);
+
+    try {
+      if (claimThisData.verified) {
+        await productMutation.mutateAsync({
+          id: params.productId,
+          ...claimThisData
+        });
+      } else {
+        await productMutation.mutateAsync({
+          id: params.productId,
+          brandId: claimThisData.brandId,
+        });
+      }
+      setToggleClaimThis(prev => !prev);
+    } catch (err) {
+      if (err instanceof TRPCClientError) {
+        // Extract Zod validation errors
+        try {
+          const parsedError = JSON.parse(err.message);
+          if (Array.isArray(parsedError)) {
+            setClaimThisSubmitErrors(parsedError.map((error) => error.message));
+          } else {
+            setClaimThisSubmitErrors([err.message]);
+          }
+        } catch {
+          setClaimThisSubmitErrors([err.message]);
+        }
+      } else {
+        setClaimThisSubmitErrors(["Product update failed. Please try again."]);
+      }
+    } finally {
+      setClaimThisSubmitLoading(false);
+      setClaimThisData({ brandId: "", verified: false });
+      refetch();
+    }
   };
   
   return (
@@ -238,7 +300,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
                   </div>
                   <div className='flex gap-2 items-baseline'>
                     <span>by</span>
-                    {data.verified ?
+                    {data.brand?.id ?
                       <Link href={`/brands/${data.brand?.id}`}>
                         <span className='font-bold text-lg text-sky-600 underline'>{data.brand?.name}</span>
                       </Link>
@@ -282,7 +344,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
                       <div className='absolute top-10 flex flex-col bg-emerald-50 min-w-max items-center p-1 shadow-xl rounded-lg border shadow-emerald-900/20'>
                         {!data.verified &&
                           (userData?.ownedBrands.some((ownedBrand) => ownedBrand.brand.verified === true) &&
-                            <button className='p-2 px-4 w-full hover:bg-emerald-100 rounded-lg' onClick={handleClaimThis}>Claim this {data.type === ProductType.PRODUCT && "product"}{data.type === ProductType.SERVICE && "service"}</button>
+                            <button className='p-2 px-4 w-full hover:bg-emerald-100 rounded-lg' onClick={handleClaimThis} title={`Add this ${data.type === ProductType.PRODUCT ? "product" : data.type === ProductType.SERVICE ? "service" : ""} to one of the brand that you belong to.`}>Claim this {data.type === ProductType.PRODUCT && "product"}{data.type === ProductType.SERVICE && "service"}</button>
                           )
                         }
                         {userData && isProductDeletableButton(data, userData) &&
@@ -441,7 +503,8 @@ const Product = ({ params }: { params: { productId: string } }) => {
               <form className='flex flex-col gap-6' onSubmit={handleClaimThisOnSubmit}>
                 <div className='flex flex-col gap-1'>
                   <label htmlFor="brand" className='font-semibold'>Select a brand</label>
-                  <select name="brand" id="brand" className='p-2 border-2 border-neutral-300 rounded-lg outline-none'>
+                  <select name="brand" id="brand" className='p-2 border-2 border-neutral-300 rounded-lg outline-none' onChange={e => (setClaimThisData(prev => ({ ...prev, brandId: e.target.value })))}>
+                    <option value="">Select a brand</option>
                     {userData?.id &&
                       userData.ownedBrands.filter(ownedBrand => ownedBrand.brand.verified === true).map((ownedBrand) => (
                         <option key={ownedBrand.brand.id} value={ownedBrand.brand.id}>
@@ -452,8 +515,36 @@ const Product = ({ params }: { params: { productId: string } }) => {
                   </select>
                 </div>
                 <div className='flex gap-2 items-center'>
-                  <input type="checkbox" name='verified' id='verified' className='w-4 aspect-square rounded-md'/>
+                  <input type="checkbox" name='verified' id='verified' className='w-4 aspect-square rounded-md' checked={claimThisData.verified} onChange={e => (setClaimThisData(prev => ({...prev, verified: e.target.checked})))}/>
                   <label htmlFor="verified">Mark this {data?.type === ProductType.PRODUCT && "product"}{data?.type === ProductType.SERVICE && "service"} as verified</label>
+                </div>
+                <div>
+                  <p className='text-sm text-neutral-400'><strong>Mark this as verified</strong> so that other brands will not be able to claim this.</p>
+                </div>
+                {claimThisError.brandId &&
+                  <div className='bg-red-100 p-2 px-4 text-red-600 rounded-lg flex items-center gap-2'>
+                    <PiWarningCircleLight className='text-xl' />
+                    <span>Please select a brand</span>
+                  </div>
+                }
+                {claimThisSubmitErrors.length > 0 && (
+                  claimThisSubmitErrors.map((err, index) => (
+                    <div className='bg-red-100 p-2 px-4 text-red-600 rounded-lg flex items-center gap-2' key={index}>
+                      <PiWarningCircleLight className='text-xl' />
+                      <span>{err}</span>
+                    </div>
+                  ))
+                )}
+                <div className='flex gap-4 ml-auto'>
+                  <button
+                    className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors'
+                    type='button'
+                    disabled={claimThisSubmitLoading}
+                    onClick={(e) => { e.preventDefault(); setClaimThisData({ brandId: "", verified: false }); setToggleClaimThis(prev => !prev); }}
+                  >
+                    Cancel
+                  </button>
+                  <button className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors' type='submit' disabled={claimThisSubmitLoading}>{claimThisSubmitLoading ? "Updating..." : "Update"}</button>
                 </div>
               </form>
             </div>

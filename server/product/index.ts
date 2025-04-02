@@ -84,7 +84,7 @@ export const productRouter = router({
       const isAdmin = user?.roles.some(r => r.role === Role.ADMIN);
       
       let isBrandOwner = false;
-      if (product.brandId) {
+      if (product.brandId && product.verified) {
         const brandOwner = await prisma.brandUser.findFirst({
           where: {
             brandId: product.brandId,
@@ -96,10 +96,8 @@ export const productRouter = router({
           isBrandOwner = true;
         }
       } else { 
-        // Check if the user is an owner of the brand
         const brandOwner = await prisma.brandUser.findFirst({
           where: {
-            brandId: brandId,
             userId,
           },
         });
