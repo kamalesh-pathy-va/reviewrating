@@ -4,8 +4,9 @@ import { ProductType, ReviewStatus, Role } from '@prisma/client';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react'
 import StarRatings from "react-star-ratings";
-import { PiDotsThreeOutlineVerticalFill, PiWarningCircleLight } from "react-icons/pi";
+import { PiDotsThreeOutlineVerticalFill, PiWarningBold, PiWarningCircleLight } from "react-icons/pi";
 import { TRPCClientError } from '@trpc/client';
+import { useRouter } from 'next/navigation';
 
 type Review = {
     user: {
@@ -66,6 +67,7 @@ type User = {
 
 const Product = ({ params }: { params: { productId: string } }) => {
   // Varibles
+  const router = useRouter();
   const [cursor, setCursor] = useState<string | null>(null);
   const [allReview, setAllReview] = useState<Review[]>([]);
   const [localUser, setlocalUser] = useState<{ id: string; } | null>(null);
@@ -93,6 +95,8 @@ const Product = ({ params }: { params: { productId: string } }) => {
   });
   const [claimThisSubmitErrors, setClaimThisSubmitErrors] = useState<string[]>([]);
   const [claimThisSubmitLoading, setClaimThisSubmitLoading] = useState(false);
+  const [deleteProductErrors, setDeleteProductErrors] = useState<string[]>([]);
+  const [deleteProductLoading, setDeleteProductLoading] = useState(false);
 
   //Queries
   const { data, isLoading, error, refetch } = trpc.product.getProductById.useQuery(
@@ -130,6 +134,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
   );
 
   const productMutation = trpc.product.updateProduct.useMutation();
+  const deleteProductMutation = trpc.product.softDeleteProduct.useMutation();
 
   //Helpers
   useEffect(() => {
@@ -215,11 +220,6 @@ const Product = ({ params }: { params: { productId: string } }) => {
 
   const handleClaimThisOnSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    setClaimThisData(prev => {
-      console.log(prev);
-      return prev;
-    });
 
     if (claimThisData.brandId.length === 0) {
       setClaimThisError(prev => ({ ...prev, brandId: true }));
@@ -232,7 +232,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
     setClaimThisSubmitLoading(true);
 
     try {
-      if (claimThisData.verified) {
+      if (claimThisData.verified || data?.verified) {
         await productMutation.mutateAsync({
           id: params.productId,
           ...claimThisData
@@ -266,6 +266,35 @@ const Product = ({ params }: { params: { productId: string } }) => {
       refetch();
     }
   };
+
+  const handleDeleteProduct = async () => {
+    setDeleteProductErrors([]);
+    setDeleteProductLoading(true);
+    try {
+      await deleteProductMutation.mutateAsync({
+        id: params.productId
+      });
+      router.push('/products');
+    } catch (err) {
+      if (err instanceof TRPCClientError) {
+        // Extract Zod validation errors
+        try {
+          const parsedError = JSON.parse(err.message);
+          if (Array.isArray(parsedError)) {
+            setDeleteProductErrors(parsedError.map((error) => error.message));
+          } else {
+            setDeleteProductErrors([err.message]);
+          }
+        } catch {
+          setDeleteProductErrors([err.message]);
+        }
+      } else {
+        setDeleteProductErrors(["Product update failed. Please try again."]);
+      }
+    } finally {
+      setDeleteProductLoading(false);
+    }
+  }
   
   return (
     <section className='p-6 min-h-screen bg-emerald-50 relative'>
@@ -347,6 +376,11 @@ const Product = ({ params }: { params: { productId: string } }) => {
                             <button className='p-2 px-4 w-full hover:bg-emerald-100 rounded-lg' onClick={handleClaimThis} title={`Add this ${data.type === ProductType.PRODUCT ? "product" : data.type === ProductType.SERVICE ? "service" : ""} to one of the brand that you belong to.`}>Claim this {data.type === ProductType.PRODUCT && "product"}{data.type === ProductType.SERVICE && "service"}</button>
                           )
                         }
+                        {data.verified &&
+                          (userData?.ownedBrands.some((ownedBrand) => ownedBrand.brand.id === data.brand?.id) &&
+                            <button className='p-2 px-4 w-full hover:bg-emerald-100 rounded-lg' onClick={handleClaimThis} title={`Add this ${data.type === ProductType.PRODUCT ? "product" : data.type === ProductType.SERVICE ? "service" : ""} to one of the brand that you belong to.`}>Update ownership</button>
+                          )
+                        }
                         {userData && isProductDeletableButton(data, userData) &&
                           <button className='p-2 px-4 w-full text-red-600 hover:bg-red-600 hover:text-red-50 rounded-lg' onClick={handleDelete}>Delete</button>
                         }
@@ -361,59 +395,61 @@ const Product = ({ params }: { params: { productId: string } }) => {
       </div>
 
       {/* Review Section */}
-      <div className='mt-8 flex max-w-6xl mx-auto'>
-        <div className='w-4/5 pb-4'>
-          <h4 className='text-3xl font-bold mb-4'>Reviews</h4>
-          <div className='grid grid-cols-[70%_30%]'>
-            {allReview.length > 0 ?
-              <div className='flex flex-col gap-12'>
-                {reviewsLoading && <p>Loading Reviews...</p>}
-                {reviewsError && <p className="text-red-500">Error loading reviews: {reviewsError.message}</p>}
-                {allReview.map(review => (
-                  <div key={review.id} className='w-3/4' id={review.id}>
-                    <div className='flex justify-between'>
-                      <div className='flex gap-2 items-center'>
-                        <span className='bg-fuchsia-200 rounded-full text-lg font-bold w-12 aspect-square flex justify-center items-center'>{review.user.name[0]}</span>
-                        <div className='flex flex-col'>
-                          <span className='font-bold text-lg'>{review.user.name}</span>
-                          <span className='text-sm text-neutral-400'>{review.user._count.reviews} reviews</span>
+      {data &&
+        <div className='mt-8 flex max-w-6xl mx-auto'>
+          <div className='w-4/5 pb-4'>
+            <h4 className='text-3xl font-bold mb-4'>Reviews</h4>
+            <div className='grid grid-cols-[70%_30%]'>
+              {allReview.length > 0 ?
+                <div className='flex flex-col gap-12'>
+                  {reviewsLoading && <p>Loading Reviews...</p>}
+                  {reviewsError && <p className="text-red-500">Error loading reviews: {reviewsError.message}</p>}
+                  {allReview.map(review => (
+                    <div key={review.id} className='w-3/4' id={review.id}>
+                      <div className='flex justify-between'>
+                        <div className='flex gap-2 items-center'>
+                          <span className='bg-fuchsia-200 rounded-full text-lg font-bold w-12 aspect-square flex justify-center items-center'>{review.user.name[0]}</span>
+                          <div className='flex flex-col'>
+                            <span className='font-bold text-lg'>{review.user.name}</span>
+                            <span className='text-sm text-neutral-400'>{review.user._count.reviews} reviews</span>
+                          </div>
                         </div>
+                        <span className='text-xs font-bold text-neutral-400'>{review.updatedAt.slice(0, 10)}</span>
                       </div>
-                      <span className='text-xs font-bold text-neutral-400'>{review.updatedAt.slice(0,10)}</span>
+                      <div className='mt-2 flex flex-col gap-2'>
+                        <span><StarRatings
+                          rating={review.rating}
+                          starRatedColor="orange"
+                          numberOfStars={5}
+                          starDimension='20px'
+                          starSpacing='1px'
+                        /></span>
+                        <h4 className='font-bold'>{review.title}</h4>
+                        {review.comment && <p>{review.comment}</p>}
+                      </div>
                     </div>
-                    <div className='mt-2 flex flex-col gap-2'>
-                      <span><StarRatings
-                        rating={review.rating}
-                        starRatedColor="orange"
-                        numberOfStars={5}
-                        starDimension='20px'
-                        starSpacing='1px'
-                      /></span>
-                      <h4 className='font-bold'>{review.title}</h4>
-                      {review.comment && <p>{review.comment}</p>}
-                    </div>
-                  </div>
-                ))}
-                {reviews?.nextCursor && (
-                  <button
-                    onClick={() => setCursor(reviews.nextCursor)}
-                    disabled={reviewsFetching}
-                    className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {reviewsFetching ? 'Loading...' : 'Load More'}
-                  </button>
-                )}
-              </div> :
-              <span>No reviews found for this product</span>
-            }
-            <div className='ml-auto'>
-              {localUser?.id &&
-                <button className='bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors' onClick={() => setToggleAddReview(prev => !prev)}>Add a review</button>
+                  ))}
+                  {reviews?.nextCursor && (
+                    <button
+                      onClick={() => setCursor(reviews.nextCursor)}
+                      disabled={reviewsFetching}
+                      className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {reviewsFetching ? 'Loading...' : 'Load More'}
+                    </button>
+                  )}
+                </div> :
+                <span>No reviews found for this product</span>
               }
+              <div className='ml-auto'>
+                {localUser?.id &&
+                  <button className='bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors' onClick={() => setToggleAddReview(prev => !prev)}>Add a review</button>
+                }
+              </div>
             </div>
-            </div>
+          </div>
         </div>
-      </div>
+      }
 
       {/* Add review modal */}
       {toggleAddReview &&
@@ -479,14 +515,14 @@ const Product = ({ params }: { params: { productId: string } }) => {
                 )}
                 <div className='flex gap-4 ml-auto'>
                   <button
-                    className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors'
+                    className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md'
                     type='button'
                     disabled={submitLoading}
                     onClick={(e) => { e.preventDefault(); setFormReviewData({ title: '', rating: 0, comment: '' }); setToggleAddReview(!toggleAddReview); }}
                   >
                     Clear & Close
                   </button>
-                  <button className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors' type='submit' disabled={submitLoading}>{submitLoading ? "Posting..." : "Post"}</button>
+                  <button className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md' type='submit' disabled={submitLoading}>{submitLoading ? "Posting..." : "Post"}</button>
                 </div>
               </form>
             </div>
@@ -499,11 +535,11 @@ const Product = ({ params }: { params: { productId: string } }) => {
         <div className='absolute w-full h-full inset-0 bg-neutral-950/30 backdrop-blur-md' onClick={() => setToggleClaimThis(prev => !prev)}>
           <div className='sticky top-16'>
             <div className='bg-white max-w-2xl mx-auto mt-8 rounded-xl p-16 py-12' onClick={(e) => e.stopPropagation()}>
-              <h4 className='text-2xl font-bold pb-4'>Claim this {data?.type === ProductType.PRODUCT && "product"}{data?.type === ProductType.SERVICE && "service"}</h4>
+              <h4 className='text-2xl font-bold pb-4'>Update ownership of this {data?.type === ProductType.PRODUCT && "product"}{data?.type === ProductType.SERVICE && "service"}</h4>
               <form className='flex flex-col gap-6' onSubmit={handleClaimThisOnSubmit}>
                 <div className='flex flex-col gap-1'>
                   <label htmlFor="brand" className='font-semibold'>Select a brand</label>
-                  <select name="brand" id="brand" className='p-2 border-2 border-neutral-300 rounded-lg outline-none' onChange={e => (setClaimThisData(prev => ({ ...prev, brandId: e.target.value })))}>
+                  <select name="brand" id="brand" defaultValue={""} className='p-2 border-2 border-neutral-300 rounded-lg outline-none' onChange={e => (setClaimThisData(prev => ({ ...prev, brandId: e.target.value })))}>
                     <option value="">Select a brand</option>
                     {userData?.id &&
                       userData.ownedBrands.filter(ownedBrand => ownedBrand.brand.verified === true).map((ownedBrand) => (
@@ -537,14 +573,14 @@ const Product = ({ params }: { params: { productId: string } }) => {
                 )}
                 <div className='flex gap-4 ml-auto'>
                   <button
-                    className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors'
+                    className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md'
                     type='button'
                     disabled={claimThisSubmitLoading}
                     onClick={(e) => { e.preventDefault(); setClaimThisData({ brandId: "", verified: false }); setToggleClaimThis(prev => !prev); }}
                   >
                     Cancel
                   </button>
-                  <button className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors' type='submit' disabled={claimThisSubmitLoading}>{claimThisSubmitLoading ? "Updating..." : "Update"}</button>
+                  <button className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md' type='submit' disabled={claimThisSubmitLoading}>{claimThisSubmitLoading ? "Updating..." : "Update"}</button>
                 </div>
               </form>
             </div>
@@ -554,7 +590,36 @@ const Product = ({ params }: { params: { productId: string } }) => {
 
       {/* "Delete This" modal */}
       {toggleDeleteThis &&
-        <div className='absolute w-full h-full inset-0 bg-neutral-950/30 backdrop-blur-md' onClick={() => setToggleDeleteThis(prev => !prev)}></div>
+        <div className='absolute w-full h-full inset-0 bg-neutral-950/30 backdrop-blur-md' onClick={() => setToggleDeleteThis(prev => !prev)}>
+          <div className='sticky top-16'>
+            <div className='bg-white max-w-2xl mx-auto mt-8 rounded-xl p-16 py-12 flex flex-col' onClick={(e) => e.stopPropagation()}>
+              <h4 className='text-2xl font-bold pb-4 text-red-600 flex gap-2 items-center'><PiWarningBold /> Delete this {data?.type === ProductType.PRODUCT && "product"}{data?.type === ProductType.SERVICE && "service"}</h4>
+              {deleteProductErrors.length > 0 && (
+                deleteProductErrors.map((err, index) => (
+                  <div className='bg-red-100 p-2 px-4 text-red-600 rounded-lg flex items-center gap-2' key={index}>
+                    <PiWarningCircleLight className='text-xl' />
+                    <span>{err}</span>
+                  </div>
+                ))
+              )}
+              <div className='flex gap-4 ml-auto'>
+                <button
+                  className='bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md'
+                  type='button'
+                  disabled={deleteProductLoading}
+                  onClick={() => setToggleDeleteThis(prev => !prev)}
+                >
+                  Cancel
+                </button>
+                <button className='bg-red-400 hover:bg-red-500 text-white font-bold text-lg px-6 py-1 transition-colors rounded-md'
+                  onClick={handleDeleteProduct}
+                  disabled={deleteProductLoading}
+                >{deleteProductLoading ? "Deleting..." : <span className='flex items-center gap-2'><PiWarningBold /> Delete</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       }
     </section>
   )

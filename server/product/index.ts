@@ -169,14 +169,16 @@ export const productRouter = router({
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
-          roles: true
+          roles: true,
+          ownedBrands: true,
         }
       });
       const isAdmin = user?.roles.some(r => r.role === Role.ADMIN);
-      if (product.createdById !== userId && !isAdmin) {
+      const isBrandOwner = user?.ownedBrands.some(ownedBrand => ownedBrand.brandId === product.brandId)
+      if (product.createdById !== userId && !isAdmin && !isBrandOwner) {
         throw new TRPCError({
           "code": "UNAUTHORIZED",
-          "message": "Not the owner, admin"
+          "message": "Neither the owner, brand owner nor an admin"
         });
       }
 
