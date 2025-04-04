@@ -153,14 +153,17 @@ export const brandRouter = router({
       z.object({
         id: z.string().uuid(),
       }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { id } = input;
+      const { user } = ctx;
 
       const brand = await prisma.brand.findUnique({
         where: {
           id,
-          verified: true,
           deletedAt: null
+        },
+        include: {
+          owners: true,
         }
       });
 
@@ -169,6 +172,39 @@ export const brandRouter = router({
           "code": "NOT_FOUND",
           "message": "Brand not found"
         })
+      }
+
+      if (brand.verified) {
+        return brand;
+      }
+
+      if (!user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Unauthorized access to unverified brand",
+        });
+      }
+
+      const roles = await prisma.userRole.findMany({
+        where: {
+          userId: user.id,
+          role: { in: [Role.ADMIN, Role.MODERATOR] },
+        },
+      });
+
+      const isAdminOrMod = roles.length > 0;
+      const isBrandOwner = await prisma.brandUser.findFirst({
+        where: {
+          userId: user.id,
+          brandId: id,
+        },
+      });
+
+      if (!isAdminOrMod && !isBrandOwner) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You do not have permission to access this brand",
+        });
       }
 
       return brand;
