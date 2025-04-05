@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react'
+import { IoIosCheckmarkCircle } from 'react-icons/io';
 
 type Brand = {
   name: string;
@@ -23,7 +24,9 @@ const BrandCard = ({brand}: {brand: Brand}) => {
             <h2 className='text-2xl font-bold'>
               {brand.name}
             </h2>
-            {brand.verified && <p className='bg-green-50 text-green-700 px-1 rounded-full'>&#10003;</p>}
+            {brand.verified && <p className='text-green-600 text-xl'>
+              <IoIosCheckmarkCircle />
+            </p>}
           </div>
           <p className='text-sm text-neutral-400'>Member since {brand.createdAt.slice(0, 4)}</p>
           <p className='mt-4'>Offers <strong>{brand._count.products}</strong> products and services</p>

@@ -18,7 +18,7 @@ type Brand = {
 const BrandListItem = ({ brand }: { brand: Brand }) => {
   const { data: reviews } = trpc.review.getReviewsByBrandId.useQuery(
     { brandId: brand.id },
-    { enabled: brand.id.length !== 0 },
+    { enabled: brand.id.length === 36 },
   );
   return (
     <Link href={`/brands/${brand.id}`}>
@@ -41,7 +41,7 @@ const BrandListItem = ({ brand }: { brand: Brand }) => {
         </div>
         <div className='flex items-center'>{brand._count.products}</div>
         <div className='flex items-center'>{reviews?.aggregation._avg.rating ?
-          <span>{reviews?.aggregation._avg.rating} ({reviews.aggregation._count.rating})</span> :
+          <span>{Math.round((reviews?.aggregation._avg.rating + Number.EPSILON) * 10) / 10} ({reviews.aggregation._count.rating})</span> :
           "0"
         }</div>
       </div>
