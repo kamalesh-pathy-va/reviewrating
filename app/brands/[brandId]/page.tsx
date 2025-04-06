@@ -4,6 +4,8 @@ import React from 'react'
 
 import BrandHeader from './BrandHeader';
 import ReviewsSection from './ReviewsSection';
+import BrandNav from './BrandNav';
+import VerifiedProductsSection from './VerifiedProductsSection';
 
 const Brand = ({ params }: { params: { brandId: string } }) => {
   
@@ -13,7 +15,9 @@ const Brand = ({ params }: { params: { brandId: string } }) => {
         {params.brandId.length === 36 ?
           <>
             <BrandHeader brandId={params.brandId} />
+            <BrandNav />
             <ReviewsSection brandId={params.brandId} />
+            <VerifiedProductsSection brandId={params.brandId} />
           </>
         : "Invalid Brand ID"}
       </div>

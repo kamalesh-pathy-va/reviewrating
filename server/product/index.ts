@@ -462,6 +462,94 @@ export const productRouter = router({
       products,
       nextCursor,
     };
-}),
+  }),
+
+  getProductsByBrandId: protectedProcedure
+    .input(
+      z.object({
+        brandId: z.string(),
+        limit: z.number().min(1).max(50).default(5),
+        cursor: z.string().nullish(),
+        verified: z.boolean().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { brandId, limit, cursor, verified = true } = input;
+      const { user } = ctx;
+
+      if (!user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not logged in",
+        });
+      }
+
+      const userRoles = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { roles: true },
+      });
+
+      const isAdminOrMod = userRoles?.roles.some(
+        (r) => r.role === Role.ADMIN || r.role === Role.MODERATOR
+      );
+
+      if (!verified) {       
+        const isBrandOwner = await prisma.brandUser.findFirst({
+          where: {
+            userId: user.id,
+            brandId,
+          },
+        });
+
+        if (!isAdminOrMod && !isBrandOwner) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Only Admins, Moderators, or Brand Owners can view unverified products",
+          });
+        }
+      }
+
+      const products = await prisma.product.findMany({
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { name: "asc" },
+        where: {
+          deletedAt: null,
+          brandId,
+          verified,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          type: true,
+          verified: true,
+          createdAt: true,
+          updatedAt: true,
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          reviews: {
+            select: {
+              rating: true,
+            },
+          },
+        },
+      });
+
+      let nextCursor: string | null = null;
+      if (products.length > limit) {
+        const nextItem = products.pop();
+        nextCursor = nextItem?.id ?? null;
+      }
+
+      return {
+        products,
+        nextCursor,
+      };
+    }),
 
 });

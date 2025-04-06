@@ -26,6 +26,10 @@ type Review = {
     createdById: string;
     verified: boolean;
   };
+  user: {
+    name: string;
+    id: string;
+  };
   status: ReviewStatus;
   productId: string;
 }
@@ -38,7 +42,7 @@ const ReviewsSection = ({ brandId }: { brandId: string }) => {
     {
       brandId: brandId,
       cursor,
-      limit: 5,
+      limit: 4,
     },
     {
       enabled: brandId.length === 36,
@@ -51,26 +55,30 @@ const ReviewsSection = ({ brandId }: { brandId: string }) => {
   );
 
   return (
-    <div className='mt-10 flex flex-col gap-2'>
+    <div className='mt-8 flex flex-col gap-2' id='reviews'>
       <h4 className='font-bold text-xl'>Reviews of Products and services offered</h4>
       <div>
         {isReviewLoading && <p>Loading Reviews...</p>}
         {reviewErrors && <p className="text-red-500">Error loading reviews: {reviewErrors.message}</p>}
         {allReview.length > 0 &&
-          <div className='flex flex-wrap gap-2'>
+          <div className='grid grid-cols-2 gap-4'>
             {allReview.map(review => <Review review={review} key={review.id} />)}
           </div>
         }
-      </div>
-      {reviews?.nextCursor && (
+        {(!isReviewLoading && allReview.length === 0) &&
+          <span>No reviews found</span>
+        }
+        {reviews?.nextCursor && (
         <button
           onClick={() => setCursor(reviews.nextCursor)}
           disabled={isReviewFetching}
-          className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+          className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 w-fit"
         >
           {isReviewFetching ? 'Loading...' : 'Load More'}
         </button>
       )}
+      </div>
+      
     </div>
   )
 }

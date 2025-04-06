@@ -366,7 +366,10 @@ export const reviewRouter = router({
             }
         ]
       },
-      include: { product: true },
+      include: {
+        product: true,
+        user: { select: { name: true, id: true } },
+      },
     });
 
     const aggregation = await prisma.review.aggregate({

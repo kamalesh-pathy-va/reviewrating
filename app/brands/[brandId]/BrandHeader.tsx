@@ -29,7 +29,7 @@ const BrandHeader = ({ brandId }: { brandId: string }) => {
       {brandError && <p className="text-red-500">Error loading brand: {brandError.message}</p>}
       {
         brandData && (
-          <div className='flex gap-4 items-center'>
+          <div className='flex gap-4 items-center' id='home'>
             <div className='w-48 aspect-square bg-slate-200/50 rounded-full flex justify-center items-center'>
               <span className='text-4xl font-bold'>{brandData.name[0]}</span>
             </div>
