@@ -4,6 +4,7 @@ import { trpc } from '../_trpc/client';
 import { ProductType } from '@prisma/client';
 import BrandListItem from '../components/BrandListItem';
 import ProductListItem from '../components/ProductListItem';
+import useFetchLocalUser from '../hooks/useFetchLocalUser';
 
 type TempUser = {
   name: string;
@@ -39,23 +40,16 @@ type Products = {
 };
 
 const Profile = () => {
-  const [localUser, setlocalUser] = useState<{ id: string; } | null>(null);
   const [productCursor, setProductCursor] = useState<string | null>(null);
   const [products, setProducts] = useState<Products[]>([]);
   const [brandCursor, setBrandCursor] = useState<string | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
 
-  const { data: user, isLoading: userLoading, error: userError, refetch: refetchUser } = trpc.user.getUserById.useQuery(
-    { userId: localUser?.id ?? "" },
-    {
-      enabled: !!localUser,
-      refetchOnWindowFocus: false
-    },
-  );
+  const {user, userLoading, userError, refetchUser } = useFetchLocalUser();
 
   const { data: brand, isLoading: brandLoading, isFetching: brandFetching, error: brandError } = trpc.brand.getBrandByUserId.useQuery(
     {
-      userId: localUser?.id ?? "",
+      userId: user?.id ?? "",
       limit: 5,
       cursor: brandCursor,
     },
@@ -70,7 +64,7 @@ const Profile = () => {
   );
   const { data: product, isLoading: productLoading, isFetching: productFetching, error: productError } = trpc.product.getProductByUserId.useQuery(
     {
-      userId: localUser?.id ?? "",
+      userId: user?.id ?? "",
       limit: 5,
       cursor: productCursor,
     },
@@ -107,17 +101,6 @@ const Profile = () => {
     await refetchUser();
     setIsEdit(prev => !prev);
   };
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const authToken = document.cookie.includes("authToken");
-      if (authToken) {
-        const localUserData = document.cookie.replace(/(?:(?:^|.*;\s*)user\s*\=\s*([^;]*).*$)|^.*$/,
-          "$1");
-        setlocalUser(localUserData ? JSON.parse(localUserData) : null);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     setTempUser({

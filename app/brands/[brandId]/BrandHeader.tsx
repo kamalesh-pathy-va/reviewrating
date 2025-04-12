@@ -16,7 +16,10 @@ const BrandHeader = ({ brandId }: { brandId: string }) => {
 
   const { data: reviews } = trpc.review.getReviewsByBrandId.useQuery(
     { brandId: brandId },
-    { enabled: brandId.length === 36 },
+    {
+      enabled: brandId.length === 36,
+      refetchOnWindowFocus: false,
+    },
   );
 
   useEffect(() => {

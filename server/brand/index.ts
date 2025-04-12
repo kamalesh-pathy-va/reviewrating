@@ -132,7 +132,7 @@ export const brandRouter = router({
           createdAt: true,
           verified: true,
           _count: {
-            select: { products: true },
+            select: { products: {where: { deletedAt: null, verified: true }} },
           },
         },
       });
@@ -294,7 +294,7 @@ export const brandRouter = router({
           createdAt: true,
           verified: true,
           _count: {
-            select: { products: true }
+            select: { products: { where: {deletedAt: null}} }
           }
         }
       });

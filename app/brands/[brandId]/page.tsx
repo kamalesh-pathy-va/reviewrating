@@ -6,8 +6,13 @@ import BrandHeader from './BrandHeader';
 import ReviewsSection from './ReviewsSection';
 import BrandNav from './BrandNav';
 import VerifiedProductsSection from './VerifiedProductsSection';
+import UnverifiedProductsSection from './UnverifiedProductsSection';
+import useFetchLocalUser from '@/app/hooks/useFetchLocalUser';
 
 const Brand = ({ params }: { params: { brandId: string } }) => {
+
+  const { user } = useFetchLocalUser();
+  const isBrandOwnerOfThisBrand = user?.ownedBrands.some(ownedBrand => ownedBrand.brand.id === params.brandId);
   
   return (
     <section className='p-6 min-h-screen bg-emerald-50 relative'>
@@ -18,6 +23,10 @@ const Brand = ({ params }: { params: { brandId: string } }) => {
             <BrandNav />
             <ReviewsSection brandId={params.brandId} />
             <VerifiedProductsSection brandId={params.brandId} />
+            {
+              isBrandOwnerOfThisBrand &&
+              <UnverifiedProductsSection brandId={params.brandId} />
+            }
           </>
         : "Invalid Brand ID"}
       </div>

@@ -61,7 +61,7 @@ const ProductItem = ({product}: {product: Products}) => {
         </div>
         <p className='text-sm line-clamp-1'>{product.description}</p>
         {product.brand &&
-          <div className='mt-2 text-sm font-bold '>
+          <div className='mt-2 text-sm font-bold text-sky-600'>
             <Link href={`/brands/${product.brand.id}`}>
               {product.brand.name}
             </Link>

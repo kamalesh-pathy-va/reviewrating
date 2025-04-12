@@ -14,6 +14,11 @@ const BrandNav = () => {
           Reviews
         </button>
       </Link>
+      <Link href={"#products"} className='font-bold'>
+        <button className='bg-emerald-300 p-2 px-4 rounded-md'>
+          Products
+        </button>
+      </Link>
     </div>
   )
 }

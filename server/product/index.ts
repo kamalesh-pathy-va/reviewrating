@@ -541,6 +541,7 @@ export const productRouter = router({
       });
 
       let nextCursor: string | null = null;
+
       if (products.length > limit) {
         const nextItem = products.pop();
         nextCursor = nextItem?.id ?? null;
