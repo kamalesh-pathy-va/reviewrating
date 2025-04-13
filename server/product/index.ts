@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { prisma } from "@/utils/db";
 import { TRPCError } from "@trpc/server";
-import { Role } from "@prisma/client";
+import { ProductType, Role } from "@prisma/client";
 
 export const productRouter = router({
   createProduct: protectedProcedure
@@ -130,7 +130,13 @@ export const productRouter = router({
         });
       }
 
-      const updateData: Record<string, any> = {};
+      const updateData: {
+        name?: string;
+        description?: string;
+        type?: ProductType;
+        brandId?: string;
+        verified?: boolean;
+      } = {};
       if (name !== undefined) updateData.name = name;
       if (description !== undefined) updateData.description = description;
       if (type !== undefined) updateData.type = type;

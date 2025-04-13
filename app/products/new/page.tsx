@@ -24,7 +24,7 @@ const NewProduct = () => {
     description: undefined,
     type: undefined,
     brand: undefined,
-    verified: undefined,
+    verified: false,
   });
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [formError, setFormError] = useState({
@@ -80,13 +80,11 @@ const NewProduct = () => {
         brandId: formData.brand
       });
 
-      if (formData.verified) {
-        await updateProduct.mutateAsync({
-          id: newProduct.id,
-          brandId: formData.brand,
-          verified: formData.verified,
-        })
-      }
+      await updateProduct.mutateAsync({
+        id: newProduct.id,
+        brandId: formData.brand,
+        verified: formData.verified,
+      })
       router.push(`/products/${newProduct.id}`)
     } catch (err) {
       if (err instanceof TRPCClientError) {
@@ -109,7 +107,7 @@ const NewProduct = () => {
         description: undefined,
         type: undefined,
         brand: undefined,
-        verified: undefined,
+        verified: false,
       });
       setProductCreateLoading(false);
     }
