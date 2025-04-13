@@ -12,7 +12,7 @@ export function middleware(req: NextRequest) {
   }
 
   // Redirect unauthenticated users trying to access protected pages
-  const protectedRoutes = ["/dashboard", "/profile", "/settings"]; // Add more protected routes as needed
+  const protectedRoutes = ["/profile", "/products/new"]; // Add more protected routes as needed
   if (!authToken && protectedRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
@@ -22,5 +22,5 @@ export function middleware(req: NextRequest) {
 
 // Apply the middleware only to relevant routes
 export const config = {
-  matcher: ["/auth/login", "/auth/signup", "/profile"],
+  matcher: ["/auth/login", "/auth/signup", "/profile", "/products/new"],
 };

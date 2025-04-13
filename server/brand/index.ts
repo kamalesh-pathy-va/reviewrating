@@ -226,7 +226,7 @@ export const brandRouter = router({
               name: { contains: part, mode: "insensitive" }, // Match any word in product name
             })),
           },
-          { deletedAt: null },
+          { deletedAt: null, verified: true },
         ],
       },
       select: {

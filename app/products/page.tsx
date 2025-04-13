@@ -4,6 +4,7 @@ import { trpc } from '../_trpc/client';
 import { ProductType } from '@prisma/client';
 import ProductItem from '../components/ProductItem';
 import Link from 'next/link';
+import { PiPlusBold } from "react-icons/pi";
 
 type Products = {
   name: string;
@@ -26,7 +27,7 @@ function Products() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [products, setProducts] = useState<Products[]>([]);
   const { data, isLoading, isFetching, error } = trpc.product.getAllProducts.useQuery(
-    { limit: 10, cursor },
+    { limit: 8, cursor },
     {
       keepPreviousData: true, 
       refetchOnWindowFocus: false,
@@ -42,8 +43,9 @@ function Products() {
         <div className='flex justify-between items-center mb-6'>
           <h1 className="text-3xl font-bold">All Products</h1>
           <Link href='/products/new'>
-            <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-800 font-semibold">
-              Create new Product
+            <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-800 font-semibold flex gap-2 items-center transition-colors">
+              <PiPlusBold />
+              <span>Create new Product</span>
             </button>
           </Link>
         </div>

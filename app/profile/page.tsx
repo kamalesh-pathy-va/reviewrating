@@ -5,6 +5,8 @@ import { ProductType } from '@prisma/client';
 import BrandListItem from '../components/BrandListItem';
 import ProductListItem from '../components/ProductListItem';
 import useFetchLocalUser from '../hooks/useFetchLocalUser';
+import { PiPlusBold } from "react-icons/pi";
+import Link from 'next/link';
 
 type TempUser = {
   name: string;
@@ -133,7 +135,7 @@ const Profile = () => {
                     </button>
                   </>
                   :
-                  <button className='text-base px-4 py-2 bg-sky-400 hover:bg-sky-700 hover:text-white rounded-full font-normal' onClick={() => setIsEdit(prev => !prev)}>
+                  <button className='text-base px-4 py-2 bg-sky-400 hover:bg-sky-700 hover:text-white rounded-full font-normal transition-colors' onClick={() => setIsEdit(prev => !prev)}>
                     Edit
                   </button>
                 }
@@ -157,7 +159,13 @@ const Profile = () => {
         {brandError && <p className="text-red-500">Error loading brands: {brandError.message}</p>}
 
         <div className='flex flex-col w-full bg-white border border-b-0 border-neutral-300 rounded-lg rounded-b-none'>
-          <h4 className='text-xl font-semibold m-4'>My Brands</h4>
+          <div className='flex justify-between m-4 items-center'>
+            <h4 className='text-2xl font-semibold'>My Brands</h4>
+            <Link href={'/brands/new'} className='flex gap-2 items-center bg-sky-400 py-2 px-4 rounded hover:bg-sky-700 hover:text-white transition-colors font-bold'>
+              <PiPlusBold />
+              <button>New</button>
+            </Link>
+          </div>
           <div className='grid grid-cols-[40%_30%_30%] px-4 py-1 border-b border-neutral-300 font-bold text-neutral-400'>
             <span>Brand name</span>
             <span>Products</span>
@@ -183,7 +191,7 @@ const Profile = () => {
         {productError && <p className="text-red-500">Error loading products: {productError.message}</p>}
 
         <div className='flex flex-col w-full bg-white border border-b-0 border-neutral-300 rounded-lg rounded-b-none'>
-          <h4 className='text-xl font-semibold m-4'>My Products</h4>
+          <h4 className='text-2xl font-semibold m-4'>My Products</h4>
 
           <div className='grid grid-cols-[40%_30%_30%] px-4 py-1 border-b border-neutral-300 font-bold text-neutral-400'>
             <span>Name</span>

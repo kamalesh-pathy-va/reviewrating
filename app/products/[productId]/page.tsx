@@ -337,7 +337,7 @@ const Product = ({ params }: { params: { productId: string } }) => {
                         <span className='font-bold text-lg'>{data.createdBy.id === localUser?.id ? "You" : data.createdBy?.name}</span>
                     }
                   </div>
-                  <div className="mt-2">{data.description}</div>
+                  <div className="mt-2 line-clamp-3" title={data.description ?? ""}>{data.description}</div>
                   {localUser ?
                     <div className='mt-auto flex flex-col gap-2 bg-emerald-100 p-4 pt-2 rounded-lg w-fit items-center'>
                         <div className='text-7xl font-bold'>
