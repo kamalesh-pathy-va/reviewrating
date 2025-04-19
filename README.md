@@ -24,3 +24,50 @@
 7. Go to `localhost:3000`
 
 ---
+
+## Permission and Feature list
+
+| Pages | Visitor | User | Brand owner | Moderater | Admin | Status |
+|:--------|:-------:|:----:|:-----:|:---------:|:-----:|:------:|
+| Home page | ✅ | ✅ | ✅ | ✅ | ✅ | Completed |
+| All Brands | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Specific Brand | 🟧 | ✅ | ✅ | ✅ | ✅ | Completed |
+| New brand | ❌ | ✅ | ✅ | ✅ | ✅ | Not Developed |
+| All Products | ✅ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Specific Product | 🟧 | ✅ | ✅ | ✅ | ✅ | Completed |
+| New Product | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Login | ✅ | ❌ | ❌ | ❌ | ❌ | Completed |
+| Sign up | ✅ | ❌ | ❌ | ❌ | ❌ | Completed |
+| User Profile | ❌ | ✅ | 🟧 | 🟧 | 🟧 | Completed |
+
+
+| Features | Visitor | User | Brand owner | Moderater | Admin | Status |
+|:--------|:-------:|:----:|:-----:|:---------:|:-----:|:------:|
+| Search | ✅ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Login | ✅ | ❌ | ❌ | ❌ | ❌ | Completed |
+| Sign up | ✅ | ❌ | ❌ | ❌ | ❌ | Completed |
+| Logout | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Profile update | ❌ | ✅ | ❌ | ❌ | ❌ | Completed |
+| **Brand** |
+| Create new brand | ❌ | ✅ | ✅ | ✅ | ✅ | In Dev |
+| View Unverified brand | ❌ | ❌ | ✅ | ✅ | ✅ | Completed |
+| View Verified brand | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| View a brand | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| (Un)Verify a brand | ❌ | ❌ | ❌ | ✅ | ✅ | In Dev |
+| Update a brand | ❌ | ❌ | ✅ | ✅ | ✅ | Not Developed |
+| Delete a brand | ❌ | ❌ | ✅ | ❌ | ✅ | Not Developed |
+| **Product** |
+| Create new product |  ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| View all products | ✅ | ✅ | ✅ | ✅ | ✅ | Completed 
+| View a product | 🟧 | ✅ | ✅ | ✅ | ✅ | Completed |
+| (Un)Verify a product |  ❌ | ❌ | ✅ | ✅ | ✅ | Completed |
+| Update a product |  ❌ | 🟧 | ✅ | ✅ | ✅ | In Dev |
+| Delete a product |  ❌ | 🟧 | ✅ | 🟧 | ✅ | Completed |
+| Merge a product |  ❌ | ❌ | ✅ | ❌ | ❌ | In Dev |
+| **Reviews** |
+| Create new review | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| View reviews | ❌ | ✅ | ✅ | ✅ | ✅ | Completed |
+| Update a review | ❌ | ✅ | ❌ | ❌ | ❌ | Completed |
+| Flag a review | ❌ | ❌ | ✅ | ✅ | ✅ | In Dev |
+| Delete a review | ❌ | ✅ | ❌ | ❌ | ✅ | In Dev |
+
